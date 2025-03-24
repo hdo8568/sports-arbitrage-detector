@@ -38,7 +38,11 @@ def detect_arbitrage(odds_data):
         # Only if we have both home and away odds
         if best_odds["home"] > 0 and best_odds["away"] > 0:
             implied_prob = (1 / best_odds["home"]) + (1 / best_odds["away"])
-            print(f"{home_team} vs {away_team} — best odds: {best_odds}, implied prob: {implied_prob:.4f}")
+            print(f"\n{home_team} vs {away_team}")
+            print(f"  Home odds: {best_odds['home']} (Bookmaker: {bookmakers_used['home']})")
+            print(f"  Away odds: {best_odds['away']} (Bookmaker: {bookmakers_used['away']})")
+            print(f"  Implied probability: {implied_prob:.4f}")
+
 
             if implied_prob < 1:  # Arbitrage exists!
                 profit_percentage = (1 - implied_prob) * 100

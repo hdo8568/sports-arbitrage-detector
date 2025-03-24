@@ -10,7 +10,7 @@ from OddsAPIHandler import OddsAPIHandler
 from OddsSQLHandler import OddsSQLHandler
 from arbitrage import detect_arbitrage, save_arbitrage_to_db
 
-
+ 
 #with open("/home/ec2-user/test_cron.txt", "w") as f:
     #f.write("Cron job ran!\n")
 
