@@ -1,7 +1,7 @@
 #OddsSQLHandler.py
 
 import sqlite3
-import datetime
+from datetime import datetime, timedelta 
 
 """
 Step 2: provides functionality to create a SQL table,
@@ -50,6 +50,12 @@ class OddsSQLHandler:
 
     def insert_odds(self, odds_data):
         for event in odds_data:
+            commence_time = event["commence_time"]
+            event_time = datetime.fromisoformat(commence_time.replace("Z", "+00:00"))
+            if event_time < datetime.utcnow() - timedelta(hours=5):
+                continue
+
+
             event_id = event["id"]
             sport_key = event["sport_key"]
             sport_title = event["sport_title"]
@@ -84,6 +90,15 @@ class OddsSQLHandler:
 
     def close_connection(self):
         self.conn.close()
+
+    def delete_old_events(self, hours=5):
+        cutoff_time = (datetime.utcnow() - timedelta(hours=hours)).isoformat() + "Z"
+        self.cursor.execute("""
+            DELETE FROM odds
+            WHERE commence_time < ?
+        """, (cutoff_time,))
+        self.conn.commit()
+
 
 
 
