@@ -41,7 +41,7 @@ def fetch_and_store_odds():
         if arbitrage_bets:
             print(f"Found {len(arbitrage_bets)} arbitrage opportunities.", flush=True)
             save_arbitrage_to_db(arbitrage_bets)
-            send_arbitrage_email(arbitrage_bets)
+            ## send_arbitrage_email(arbitrage_bets)
 
         else:
             print("No arbitrage opportunities found.", flush=True)
