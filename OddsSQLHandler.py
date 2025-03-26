@@ -1,7 +1,7 @@
 #OddsSQLHandler.py
 
 import sqlite3
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta, timezone
 
 """
 Step 2: provides functionality to create a SQL table,
@@ -52,7 +52,7 @@ class OddsSQLHandler:
         for event in odds_data:
             commence_time = event["commence_time"]
             event_time = datetime.fromisoformat(commence_time.replace("Z", "+00:00"))
-            if event_time < datetime.utcnow() - timedelta(hours=5):
+            if event_time < datetime.now(timezone.utc) - timedelta(hours=5):
                 continue
 
 

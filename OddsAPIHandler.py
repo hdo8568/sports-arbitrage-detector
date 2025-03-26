@@ -10,7 +10,7 @@ import json
 
 class OddsAPIHandler:
 
-    def __init__(self, api_key = "20767e49a8e749476d531a49ff701e6e",
+    def __init__(self, api_key = "68994e1e474031a43c0644933b8be139",
                  sport_key = "basketball_nba", region = "us",
                  markets = "h2h,spreads,totals", odds_format = "decimal",
                  date_format = "iso"):
