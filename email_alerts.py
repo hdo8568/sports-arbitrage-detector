@@ -4,9 +4,10 @@ import smtplib
 from email.mime.text import MIMEText
 
 # 🔒 Placeholder values – replace with real ones later
-EMAIL_USER = "henryding2025@u.northwestern.edu"
-EMAIL_PASS = "Dd651216,d!"
-EMAIL_TO = "henryding2025@u.northwestern.edu"
+EMAIL_USER = "lebronjamesfan14273@gmail.com"
+EMAIL_PASS = "xypp icin euis arof"
+EMAIL_TO = "lebronjamesfan14273@gmail.com"
+
 
 def send_arbitrage_email(arbitrage_bets):
     if not arbitrage_bets:
