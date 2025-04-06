@@ -52,7 +52,7 @@ def detect_arbitrage(odds_data):
                     "away_team": away_team,
                     "best_odds": best_odds,
                     "profit_percentage": round(profit_percentage, 2),
-                    "bookmakers": str(bookmakers_used)
+                    "bookmakers": bookmakers_used
                 })
 
     return arbitrage_bets
@@ -90,7 +90,7 @@ def save_arbitrage_to_db(arbitrage_bets, db_name="odds_data.db"):
             arb["away_team"],
             str(arb["best_odds"]),
             arb["profit_percentage"],
-            arb["bookmakers"]
+            str(arb["bookmakers"])
         ))
 
     connection.commit()

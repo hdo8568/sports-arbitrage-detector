@@ -2,6 +2,7 @@
 
 import smtplib
 from email.mime.text import MIMEText
+from odds_calculator import OddsCalculator
 
 # 🔒 Placeholder values – replace with real ones later
 EMAIL_USER = "lebronjamesfan14273@gmail.com"
@@ -21,7 +22,16 @@ def send_arbitrage_email(arbitrage_bets):
         body += f"Profit: {bet['profit_percentage']}%\n"
         body += f"Best Odds: {bet['best_odds']}\n"
         body += f"Bookmakers: {bet['bookmakers']}\n"
+           
+        bookmakers = bet['bookmakers']
+        odds = bet['best_odds']
+        for side in ["home", "away"]:
+            dec = float(odds[side])
+            american = OddsCalculator.decimal_to_american(dec)
+            body += f"{bookmakers[side]}: {dec} (Decimal) / {american} (American)\n"
+        
         body += "-" * 30 + "\n"
+        
 
     msg = MIMEText(body)
     msg["Subject"] = subject
