@@ -1,5 +1,3 @@
-Henry Ding
-henryding2026@u.northwestern.edu
 
 To run, simply run automate_odds.py on terminal, or do python automate_odds.py.
 
