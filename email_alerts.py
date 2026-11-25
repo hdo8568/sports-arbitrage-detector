@@ -1,20 +1,18 @@
 #email_alerts.py
 
+import os
 import smtplib
 from email.mime.text import MIMEText
 from odds_calculator import OddsCalculator
+import config  # loads .env if present
 
-# 🔒 Placeholder values – replace with real ones later
-EMAIL_USER = "lebronjamesfan14273@gmail.com"
-EMAIL_PASS = "xypp icin euis arof"
-EMAIL_TO = "lebronjamesfan14273@gmail.com"
+# Email settings come from the environment (or .env). See .env.example.
+EMAIL_USER = os.environ.get("EMAIL_USER")
+EMAIL_PASS = os.environ.get("EMAIL_PASS")
+EMAIL_TO = os.environ.get("EMAIL_TO") or EMAIL_USER
 
 
-def send_arbitrage_email(arbitrage_bets):
-    if not arbitrage_bets:
-        return  # Nothing to send
-
-    subject = f"🚨 {len(arbitrage_bets)} Arbitrage Opportunities Found"
+def build_email_body(arbitrage_bets):
     body = ""
 
     for bet in arbitrage_bets:
@@ -22,16 +20,37 @@ def send_arbitrage_email(arbitrage_bets):
         body += f"Profit: {bet['profit_percentage']}%\n"
         body += f"Best Odds: {bet['best_odds']}\n"
         body += f"Bookmakers: {bet['bookmakers']}\n"
-           
+
         bookmakers = bet['bookmakers']
         odds = bet['best_odds']
         for side in ["home", "away"]:
             dec = float(odds[side])
             american = OddsCalculator.decimal_to_american(dec)
             body += f"{bookmakers[side]}: {dec} (Decimal) / {american} (American)\n"
-        
+
+        # Suggested stakes so both sides pay out the same amount
+        stakes = bet.get("suggested_stakes")
+        if stakes:
+            body += f"Suggested stakes (total ${stakes['total_stake']:.2f}):\n"
+            body += f"  {bet['home_team']} at {bookmakers['home']}: ${stakes['home']:.2f}\n"
+            body += f"  {bet['away_team']} at {bookmakers['away']}: ${stakes['away']:.2f}\n"
+            body += f"  Payout either way: ${stakes['payout']:.2f} (profit ${stakes['profit']:.2f})\n"
+
         body += "-" * 30 + "\n"
-        
+
+    return body
+
+
+def send_arbitrage_email(arbitrage_bets):
+    if not arbitrage_bets:
+        return  # Nothing to send
+
+    if not EMAIL_USER or not EMAIL_PASS:
+        print("❌ EMAIL_USER / EMAIL_PASS not set, skipping email. See .env.example.")
+        return
+
+    subject = f"🚨 {len(arbitrage_bets)} Arbitrage Opportunities Found"
+    body = build_email_body(arbitrage_bets)
 
     msg = MIMEText(body)
     msg["Subject"] = subject

@@ -1,0 +1,11 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Local databases (odds_data.db and test_odds.db were committed earlier and stay tracked)
+*.db
