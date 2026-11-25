@@ -30,6 +30,10 @@ def effective_odds(promo_type, boosted_odds=None, boost_pct=None, base_odds=None
     _check_type(promo_type)
     if promo_type == BONUS and boost_pct is not None:
         raise ValueError("A bonus bet has no boost percent; give its odds instead")
+    if boosted_odds is not None and boosted_odds <= 1:
+        raise ValueError("Decimal odds must be greater than 1")
+    if boost_pct is not None and boost_pct <= 0:
+        raise ValueError("Boost percent must be more than 0")
     if boosted_odds is not None:
         return boosted_odds
     if boost_pct is not None:
@@ -61,6 +65,8 @@ def hedge(promo_type, stake, odds, hedge_odds):
     if hedge_odds is None:
         return {"hedge_stake": None, "locked_profit": None, "conversion_pct": None,
                 "flags": ["no_opposite_price"]}
+    if hedge_odds <= 1:
+        raise ValueError("Hedge odds must be greater than 1")
 
     if promo_type == BONUS:
         hedge_stake = stake * (odds - 1) / hedge_odds

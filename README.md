@@ -38,6 +38,52 @@ uses the Kelly criterion: given the decimal odds and our fair win probability (f
 calculation), bet `(b*p - q) / b` of the bankroll, where `b` is odds minus 1. Full Kelly is
 very swingy, so the default is quarter Kelly (`fraction=0.25`). If there's no edge, it says bet 0.
 
+## Boost Desk
+
+I've already used every NY welcome offer, so what's left is the daily stuff: profit boosts,
+odds boosts and bonus bets. Boost Desk tells me what one is worth and how to hedge it.
+
+Put the books I can bet at in `.env` (Odds API keys or names, any case):
+
+```
+BOOKS=draftkings,fanduel,betmgm,caesars,espnbet,fanatics,betrivers
+```
+
+Then add a promo:
+
+```
+python boost_desk.py add --book fanduel --sport basketball_nba --event "Celtics @ Lakers" \
+    --selection "Boston Celtics" --boost-pct 50 --max-stake 50 --type profit_boost
+```
+
+It pulls the game's odds from The Odds API, takes the vig out of Pinnacle's line with the
+power method (or averages every book that has the line if Pinnacle doesn't), and gives me the
+EV, the best price on the other side at my books, the hedge stake and the profit I lock in.
+Every promo goes into a `boosts` table in `boosts.db`, with `placed` and `actual_result` /
+`actual_profit` columns so I can track what I actually kept.
+
+Worked example: FanDuel gives me a 50% profit boost on the Celtics at 2.70 (+170), max $50.
+The profit on $1 goes from 1.70 to 2.55, so the boosted odds are 3.55. The best Lakers price
+at my books is 1.48 (-208) at FanDuel. Hedge stake is 50 x 3.55 / 1.48 = $119.93 on the Lakers.
+If the Celtics win I get 177.50 back, minus the 50 and the 119.93, so $7.57. If the Lakers win
+I get 119.93 x 1.48 = 177.50 back, minus the same 169.93, so $7.57 again. Same money either way.
+
+```
+python boost_desk.py rank
+```
+
+shows today's promos I haven't placed yet, most locked profit first, then EV.
+
+Promo types: `profit_boost`, `odds_boost` (give `--boosted-odds` instead of `--boost-pct`) and
+`bonus_bet_stake_not_returned` (no odds needed, it uses the book's price, and it also shows the
+conversion as a percent of the bonus). For spreads and totals add `--market spreads` or
+`--market totals` and the line with `--point`.
+
+It warns me when there's no other side to hedge (like a soccer three-way), when the hedge price
+is too short and I'd lose money, when my stake is over the promo max, or when `BOOKS` isn't set.
+Each `add` costs one Odds API credit per region (5 by default, since Pinnacle is in eu); set
+`ODDS_REGIONS` to spend less. It doesn't place bets or log into anything, I still do that myself.
+
 ## Tests
 
 ```

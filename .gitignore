@@ -9,3 +9,4 @@ __pycache__/
 
 # Local databases (odds_data.db and test_odds.db were committed earlier and stay tracked)
 *.db
+.coverage
