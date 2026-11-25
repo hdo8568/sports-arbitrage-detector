@@ -123,3 +123,12 @@ def test_ev_bonus_bet_stake_not_returned():
 
 def test_ev_without_fair_probability_is_none():
     assert expected_value("profit_boost", 50, 2.5, None) is None
+
+
+def test_rejects_nonsense_odds_and_percent():
+    with pytest.raises(ValueError):
+        effective_odds("odds_boost", boosted_odds=1.0)
+    with pytest.raises(ValueError):
+        effective_odds("profit_boost", boost_pct=-10, base_odds=2.0)
+    with pytest.raises(ValueError):
+        hedge("profit_boost", 50, 2.5, 0.9)
