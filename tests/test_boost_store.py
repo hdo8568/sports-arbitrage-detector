@@ -24,7 +24,9 @@ def test_save_and_read_back(boost_env):
 
 def test_table_has_tracking_columns(boost_env):
     save_boost(_row(1.0, 1.0))
-    cols = {r[1] for r in sqlite3.connect(boost_env).execute("PRAGMA table_info(boosts)")}
+    conn = sqlite3.connect(boost_env)
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(boosts)")}
+    conn.close()
     assert {"placed", "actual_result", "actual_profit", "locked_profit", "ev"} <= cols
 
 

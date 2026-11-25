@@ -1,6 +1,6 @@
 import pytest
-
 from conftest import EVENT_ID
+
 from devig import devig
 from fair_price import evaluate, fair_probability, find_event
 

@@ -1,7 +1,7 @@
 import pytest
 import requests
-
 from conftest import EVENT_ID, FakeResponse
+
 from odds_fetch import OddsFetchError, fetch_event_odds
 
 
