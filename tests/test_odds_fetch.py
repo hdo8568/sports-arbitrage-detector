@@ -1,8 +1,13 @@
+from datetime import datetime, timezone
+
 import pytest
 import requests
 from conftest import EVENT_ID, FakeResponse
 
+import fair_price
 from odds_fetch import OddsFetchError, fetch_event_odds
+
+AFTER_TIP_OFF = datetime(2026, 11, 26, 1, 0, tzinfo=timezone.utc)  # sample game starts 00:10
 
 
 def test_fetch_by_team_names_asks_every_region_in_decimal(boost_env, fake_odds_api):
@@ -51,3 +56,15 @@ def test_fetch_network_failure_never_shows_the_key(boost_env, monkeypatch):
         fetch_event_odds("basketball_nba", "Celtics", "h2h", "super-secret-key")
     assert "super-secret-key" not in str(err.value)
     assert err.value.__cause__ is None  # the original error (with the URL) is not chained
+
+
+def test_fetch_by_event_id_refuses_a_started_game(boost_env, fake_odds_api, monkeypatch):
+    monkeypatch.setattr(fair_price, "utc_now", lambda: AFTER_TIP_OFF)
+    with pytest.raises(OddsFetchError, match="already started"):
+        fetch_event_odds("basketball_nba", EVENT_ID, "h2h", "k")
+
+
+def test_fetch_by_team_names_refuses_a_started_game(boost_env, fake_odds_api, monkeypatch):
+    monkeypatch.setattr(fair_price, "utc_now", lambda: AFTER_TIP_OFF)
+    with pytest.raises(OddsFetchError, match="already started"):
+        fetch_event_odds("basketball_nba", "Celtics @ Lakers", "h2h", "k")

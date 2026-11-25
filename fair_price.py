@@ -6,12 +6,28 @@
 #                     same line, else the average of every book that has it
 #   evaluate          one promo -> price, EV, best hedge at Henry's books, locked profit
 
+from datetime import datetime, timedelta, timezone
+
 from devig import devig
 from promo_math import effective_odds, expected_value, hedge, promo_stake
 
 MARKETS = ("h2h", "spreads", "totals")
 SHARP_BOOK = "pinnacle"
 SEPARATORS = (" @ ", " vs. ", " vs ", " v ", " at ")
+STALE_AFTER = timedelta(minutes=5)
+
+
+def utc_now():
+    """The only clock in this module; tests swap it for a fixed time."""
+    return datetime.now(timezone.utc)
+
+
+def _time(text):
+    return datetime.fromisoformat(str(text).replace("Z", "+00:00"))
+
+
+def has_started(event, now=None):
+    return _time(event["commence_time"]) <= (now or utc_now())
 
 
 def _norm(text):
@@ -19,14 +35,16 @@ def _norm(text):
 
 
 def _part_matches_team(part, team):
+    """Every word of part (3+ letters) is a whole word of the team: "Nets" is not "Hornets"."""
     words = [w for w in _norm(part).split() if len(w) >= 3]
-    return bool(words) and all(w in _norm(team) for w in words)
+    return bool(words) and all(w in _norm(team).split() for w in words)
 
 
-def find_event(events, text):
+def find_event(events, text, now=None):
     """
     Game whose teams match text, e.g. "Celtics @ Lakers", "lakers vs celtics" or "Celtics".
-    The soonest one wins if several match. Raises LookupError if none do.
+    Games that already started are skipped. The soonest one wins if several match.
+    Raises LookupError if none do.
     """
     parts = [_norm(text)]
     for sep in SEPARATORS:
@@ -41,7 +59,24 @@ def find_event(events, text):
     ]
     if not matches:
         raise LookupError(f"No upcoming game matches '{text}'")
-    return min(matches, key=lambda event: event["commence_time"])
+    upcoming = [event for event in matches if not has_started(event, now)]
+    if not upcoming:
+        raise LookupError(f"'{text}' already started; promos need a game that hasn't started yet")
+    return min(upcoming, key=lambda event: event["commence_time"])
+
+
+def resolve_selection(event, selection):
+    """
+    Full team name for a team pick like "Celtics". An exact team name or "Draw" passes
+    through. Raises ValueError if it fits neither team or both.
+    """
+    home, away = event["home_team"], event["away_team"]
+    if _norm(selection) in (_norm(home), _norm(away), "draw"):
+        return selection
+    teams = [team for team in (away, home) if _part_matches_team(selection, team)]
+    if len(teams) != 1:
+        raise ValueError(f"Selection '{selection}' must name one team: {away} or {home}")
+    return teams[0]
 
 
 def _same_point(a, b):
@@ -134,13 +169,24 @@ def best_hedge(event, market, selection, point, books):
     return best
 
 
-def evaluate(promo, event, books):
+def _stale(event, hedge_book, fair_source, now):
+    """True if the hedge book's or Pinnacle's (when it set the fair price) odds are over 5 minutes old."""
+    now = now or utc_now()
+    for bookmaker in event["bookmakers"]:
+        used = bookmaker["title"] == hedge_book or (fair_source == SHARP_BOOK and bookmaker["key"] == SHARP_BOOK)
+        if used and bookmaker.get("last_update") and now - _time(bookmaker["last_update"]) > STALE_AFTER:
+            return True
+    return False
+
+
+def evaluate(promo, event, books, now=None):
     """
     Everything Henry needs to decide on one promo.
     :param promo: dict with book, market, selection, point (spreads/totals), promo_type,
                   boosted_odds or boost_pct, max_stake and optional stake
     :param event: the game in The Odds API format
     :param books: the books he can hedge at (from BOOKS in .env)
+    :param now: the time to judge stale prices against (default: the clock)
     """
     market = promo["market"]
     point = promo.get("point")
@@ -150,7 +196,7 @@ def evaluate(promo, event, books):
         raise ValueError("Spreads and totals need a point, e.g. 4.5 or 221.5")
 
     promo_type = promo["promo_type"]
-    selection = promo["selection"]
+    selection = promo["selection"] if market == "totals" else resolve_selection(event, promo["selection"])
     stake, flags = promo_stake(promo["max_stake"], promo.get("stake"))
     base = book_price(event, promo["book"], market, selection, point)
     odds = effective_odds(promo_type, promo.get("boosted_odds"), promo.get("boost_pct"), base)
@@ -163,11 +209,14 @@ def evaluate(promo, event, books):
     locked = hedge(promo_type, stake, odds, hedge_odds)
     if not books:
         locked["flags"] = ["books_not_set"]
+    if _stale(event, hedge_book, source, now):
+        flags.append("stale_price")
 
     return {
         "event_id": event["id"],
         "event_name": f"{event['away_team']} @ {event['home_team']}",
         "commence_time": event["commence_time"],
+        "selection": selection,
         "stake": stake,
         "base_odds": base,
         "effective_odds": round(odds, 4),

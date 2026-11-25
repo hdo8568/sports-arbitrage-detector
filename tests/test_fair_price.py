@@ -1,5 +1,7 @@
+from datetime import timedelta
+
 import pytest
-from conftest import EVENT_ID
+from conftest import EVENT_ID, FIXED_NOW
 
 from devig import devig
 from fair_price import evaluate, fair_probability, find_event
@@ -28,6 +30,36 @@ def test_find_event_by_team_names(sample_event, text):
 def test_find_event_no_match(sample_event):
     with pytest.raises(LookupError, match="Knicks"):
         find_event([sample_event], "Knicks @ Nets")
+
+
+def _game(away, home, start, game_id="g"):
+    return {"id": game_id, "commence_time": start, "away_team": away, "home_team": home, "bookmakers": []}
+
+
+def test_find_event_skips_a_game_that_already_started(sample_event):
+    started = dict(sample_event, id="started", commence_time="2026-11-25T17:00:00Z")
+    assert find_event([started, sample_event], "Celtics @ Lakers", now=FIXED_NOW)["id"] == EVENT_ID
+
+
+def test_find_event_says_so_when_the_only_match_started(sample_event):
+    started = dict(sample_event, commence_time="2026-11-25T17:00:00Z")
+    with pytest.raises(LookupError, match="already started"):
+        find_event([started], "Celtics @ Lakers", now=FIXED_NOW)
+
+
+def test_find_event_matches_whole_words_nets_is_not_hornets():
+    hornets = _game("Charlotte Hornets", "New York Knicks", "2026-11-25T23:00:00Z", "hornets")
+    nets = _game("Brooklyn Nets", "New York Knicks", "2026-11-26T23:00:00Z", "nets")
+    assert find_event([hornets, nets], "Nets @ Knicks")["id"] == "nets"
+    with pytest.raises(LookupError):
+        find_event([hornets], "Nets @ Knicks")
+
+
+def test_find_event_red_sox_and_white_sox_are_different_games():
+    white = _game("Chicago White Sox", "Minnesota Twins", "2026-11-25T23:00:00Z", "white")
+    red = _game("Boston Red Sox", "New York Yankees", "2026-11-26T23:00:00Z", "red")
+    assert find_event([white, red], "Red Sox @ Yankees")["id"] == "red"
+    assert find_event([red, white], "White Sox")["id"] == "white"
 
 
 # ---------- fair price ----------
@@ -142,3 +174,58 @@ def test_evaluate_boost_pct_needs_the_book_price(sample_event):
     promo = dict(CELTICS_BOOST, book="caesars")  # not in this game's data
     with pytest.raises(ValueError, match="normal price"):
         evaluate(promo, sample_event, ["fanduel"])
+
+
+# ---------- selection names ----------
+
+def test_evaluate_maps_a_partial_selection_to_the_full_team(sample_event):
+    full = evaluate(CELTICS_BOOST, sample_event, HENRYS_BOOKS)
+    short = evaluate(dict(CELTICS_BOOST, selection="Celtics"), sample_event, HENRYS_BOOKS)
+    assert short == full
+    assert short["selection"] == "Boston Celtics"  # saved and printed under the full name
+    assert short["hedge_selection"] == "Los Angeles Lakers"
+
+
+def test_evaluate_selection_matching_neither_team_names_both(sample_event):
+    with pytest.raises(ValueError, match="Boston Celtics.*Los Angeles Lakers"):
+        evaluate(dict(CELTICS_BOOST, selection="Knicks"), sample_event, HENRYS_BOOKS)
+
+
+def test_evaluate_selection_matching_both_teams_names_both(sample_event):
+    sox = dict(sample_event, away_team="Chicago White Sox", home_team="Boston Red Sox")
+    with pytest.raises(ValueError, match="Chicago White Sox.*Boston Red Sox"):
+        evaluate(dict(CELTICS_BOOST, selection="Sox"), sox, HENRYS_BOOKS)
+
+
+# ---------- stale prices ----------
+
+def _set_update(event, key, when):
+    for bookmaker in event["bookmakers"]:
+        if bookmaker["key"] == key:
+            bookmaker["last_update"] = when
+
+
+def test_evaluate_fresh_prices_are_not_flagged(sample_event):
+    assert "stale_price" not in evaluate(CELTICS_BOOST, sample_event, HENRYS_BOOKS)["flags"]
+
+
+def test_evaluate_flags_a_stale_hedge_book(sample_event):
+    _set_update(sample_event, "fanduel", "2026-11-25T17:56:00Z")  # 6 minutes before FIXED_NOW
+    result = evaluate(CELTICS_BOOST, sample_event, HENRYS_BOOKS)
+    assert result["hedge_book"] == "FanDuel"
+    assert "stale_price" in result["flags"]
+
+
+def test_evaluate_flags_a_stale_pinnacle(sample_event):
+    _set_update(sample_event, "pinnacle", "2026-11-25T17:56:00Z")
+    assert "stale_price" in evaluate(CELTICS_BOOST, sample_event, HENRYS_BOOKS)["flags"]
+
+
+def test_evaluate_ignores_an_old_book_it_does_not_use(sample_event):
+    _set_update(sample_event, "betmgm", "2026-11-25T17:00:00Z")  # not the hedge, not Pinnacle
+    assert "stale_price" not in evaluate(CELTICS_BOOST, sample_event, HENRYS_BOOKS)["flags"]
+
+
+def test_evaluate_stale_uses_the_clock_it_is_given(sample_event):
+    later = FIXED_NOW + timedelta(minutes=4)  # 18:06, so every 18:00 price is 6 minutes old
+    assert "stale_price" in evaluate(CELTICS_BOOST, sample_event, HENRYS_BOOKS, now=later)["flags"]

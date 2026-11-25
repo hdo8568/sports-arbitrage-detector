@@ -13,7 +13,7 @@ import re
 import requests
 
 from config import get_odds_regions
-from fair_price import find_event
+from fair_price import find_event, has_started
 
 BASE_URL = "https://api.the-odds-api.com/v4/sports"
 SPORT_KEY = re.compile(r"^[a-z0-9_]+$")
@@ -58,7 +58,11 @@ def fetch_event_odds(sport_key, event, market, api_key):
     }
 
     if EVENT_ID.match(event):
-        return _get(f"{BASE_URL}/{sport_key}/events/{event}/odds", params)
+        game = _get(f"{BASE_URL}/{sport_key}/events/{event}/odds", params)
+        if has_started(game):
+            raise OddsFetchError(f"That game already started at {game['commence_time']}; "
+                                 "promos need a game that hasn't started yet")
+        return game
 
     events = _get(f"{BASE_URL}/{sport_key}/odds", params)
     try:

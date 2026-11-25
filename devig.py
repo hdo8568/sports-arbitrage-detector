@@ -24,7 +24,11 @@ def devig(odds):
 
     # sum(p**k) falls as k grows (every p is below 1): it is n - 1 above zero at
     # k = 0 and heads to -1 for big k, so bisection finds the one k where it is 0.
+    # Odds near 1.0 need a huge k (about 6931 for 1.0001 / 1.0001), so keep doubling
+    # the upper bound until it is past the answer.
     lo, hi = 0.0, 100.0
+    while sum(p ** hi for p in implied) > 1:
+        lo, hi = hi, hi * 2
     for _ in range(200):
         k = (lo + hi) / 2
         if sum(p ** k for p in implied) > 1:
@@ -32,4 +36,7 @@ def devig(odds):
         else:
             hi = k
     k = (lo + hi) / 2
-    return [p ** k for p in implied]
+    fair = [p ** k for p in implied]
+    if abs(sum(fair) - 1) > 1e-6:
+        raise ValueError(f"Could not remove the vig from {odds}: fair chances sum to {sum(fair):.6f}")
+    return fair

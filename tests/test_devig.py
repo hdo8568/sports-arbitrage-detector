@@ -36,3 +36,11 @@ def test_power_puts_more_vig_on_the_longshot():
 def test_rejects_bad_prices(bad):
     with pytest.raises(ValueError):
         devig(bad)
+
+
+def test_odds_near_one_still_sum_to_one():
+    # 1.0001 each side means k is about 6931, far past the old search bound of 100,
+    # which gave 0.99 + 0.99 = 1.98. The answer must still be a fair 50 / 50.
+    fair = devig([1.0001, 1.0001])
+    assert sum(fair) == pytest.approx(1.0, abs=1e-6)
+    assert fair == pytest.approx([0.5, 0.5], abs=1e-6)
