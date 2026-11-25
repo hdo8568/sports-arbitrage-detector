@@ -31,3 +31,21 @@ def get_db_path():
 def get_arb_total_stake():
     # Total amount to split across both sides of an arbitrage in the alerts
     return float(os.environ.get("ARB_TOTAL_STAKE", "100"))
+
+
+def get_books():
+    # The sportsbooks Henry can bet at, e.g. BOOKS=draftkings,fanduel,betmgm
+    # Names are The Odds API bookmaker keys or titles, any case. Empty list if unset.
+    raw = os.environ.get("BOOKS", "")
+    return [name.strip().lower() for name in raw.split(",") if name.strip()]
+
+
+def get_odds_regions():
+    # Boost Desk asks every region so Pinnacle (eu) is there for the fair price.
+    # Each region costs one Odds API credit per market, so trim this to save credits.
+    return os.environ.get("ODDS_REGIONS", "us,us2,uk,eu,au")
+
+
+def get_boosts_db_path():
+    # Boost Desk keeps its own SQLite file so the tracked odds_data.db never changes
+    return os.environ.get("BOOSTS_DB_PATH", os.path.join(PROJECT_DIR, "boosts.db"))
