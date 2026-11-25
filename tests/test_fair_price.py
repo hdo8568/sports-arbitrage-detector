@@ -182,6 +182,7 @@ def test_evaluate_maps_a_partial_selection_to_the_full_team(sample_event):
     full = evaluate(CELTICS_BOOST, sample_event, HENRYS_BOOKS)
     short = evaluate(dict(CELTICS_BOOST, selection="Celtics"), sample_event, HENRYS_BOOKS)
     assert short == full
+    assert short["selection"] == "Boston Celtics"  # saved and printed under the full name
     assert short["hedge_selection"] == "Los Angeles Lakers"
 
 

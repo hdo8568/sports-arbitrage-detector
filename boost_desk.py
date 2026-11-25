@@ -25,6 +25,7 @@ FLAG_TEXT = {
     "hedge_loses_money": "the hedge price is too short, so hedging loses money",
     "no_fair_price": "no book has this full line, so there's no fair price or EV",
     "books_not_set": "BOOKS isn't set in .env, so no hedge was looked for",
+    "stale_price": "the hedge book's or Pinnacle's odds are over 5 minutes old; re-check before betting",
 }
 
 
