@@ -1,8 +1,20 @@
 import smtplib
 import sqlite3
+from datetime import datetime, timezone
 
 import pytest
 import requests
+
+import fair_price
+
+# Every Boost Desk test runs at this moment unless it passes its own `now`:
+# 2 minutes after the fixtures' last_update (fresh) and before their games start.
+FIXED_NOW = datetime(2026, 11, 25, 18, 2, tzinfo=timezone.utc)
+
+
+@pytest.fixture(autouse=True)
+def fixed_clock(monkeypatch):
+    monkeypatch.setattr(fair_price, "utc_now", lambda: FIXED_NOW, raising=False)
 
 
 @pytest.fixture(autouse=True)
