@@ -1,6 +1,7 @@
 #OddsAPIHandler.py
 import requests
 import json
+from config import get_odds_api_key
 
 #Step 1: We are requesting the odd by calling the API from the
 #GET odds portion from the link: https://the-odds-api.com/liveapi/guides/v4/#parameters-2,
@@ -10,11 +11,12 @@ import json
 
 class OddsAPIHandler:
 
-    def __init__(self, api_key = "68994e1e474031a43c0644933b8be139",
+    def __init__(self, api_key = None,
                  sport_key = "basketball_nba", region = "us",
                  markets = "h2h,spreads,totals", odds_format = "decimal",
                  date_format = "iso"):
-        self.api_key = api_key
+        # The key comes from the ODDS_API_KEY environment variable (or .env)
+        self.api_key = api_key or get_odds_api_key()
         self.base_url = "https://api.the-odds-api.com/v4/sports/"
         #our self params denote our query parameters, which we
         #can find here: https://the-odds-api.com/liveapi/guides/v4/#parameters-2

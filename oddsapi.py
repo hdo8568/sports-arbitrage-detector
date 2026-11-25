@@ -7,10 +7,11 @@
 
 
 import requests
+from config import get_odds_api_key
 import json
 import pandas as pd
 
-API_KEY = "20767e49a8e749476d531a49ff701e6e"
+API_KEY = get_odds_api_key()  # set ODDS_API_KEY in .env
 
 # Setting parameters for NBA Basketball odds and spreads
 SPORT = 'basketball_nba' # NBA sport key

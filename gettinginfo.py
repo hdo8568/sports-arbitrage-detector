@@ -8,8 +8,9 @@
 # Last, we get all available markets in the US for basketball.
 
 import requests
+from config import get_odds_api_key
 
-API_KEY = "20767e49a8e749476d531a49ff701e6e"
+API_KEY = get_odds_api_key()  # set ODDS_API_KEY in .env
 
 sports_response = requests.get(
     'https://api.the-odds-api.com/v4/sports',

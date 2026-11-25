@@ -3,13 +3,20 @@
 
 import sqlite3
 from datetime import datetime
+from kelly import arbitrage_stakes
+from config import get_arb_total_stake
 
-def detect_arbitrage(odds_data):
+def detect_arbitrage(odds_data, total_stake=None):
     """
     Detects arbitrage opportunities from the given odds data.
     :param odds_data: List of events with odds from multiple sportsbooks.
+    :param total_stake: amount to split across both sides for the suggested
+                        stakes (defaults to ARB_TOTAL_STAKE, or $100).
     :return: List of arbitrage opportunities.
     """
+    if total_stake is None:
+        total_stake = get_arb_total_stake()
+
     arbitrage_bets = []
 
     for event in odds_data:
@@ -52,7 +59,11 @@ def detect_arbitrage(odds_data):
                     "away_team": away_team,
                     "best_odds": best_odds,
                     "profit_percentage": round(profit_percentage, 2),
-                    "bookmakers": bookmakers_used
+                    "bookmakers": bookmakers_used,
+                    # How much to put on each side so both pay the same
+                    "suggested_stakes": arbitrage_stakes(
+                        best_odds["home"], best_odds["away"], total_stake
+                    )
                 })
 
     return arbitrage_bets
